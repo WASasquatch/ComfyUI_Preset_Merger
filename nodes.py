@@ -60,10 +60,14 @@ class Preset_Model_Merge:
     CATEGORY = "advanced/model_merging"
     
     def merge(self, model1, model2, preset, **kwargs):
-    
         ratios_values = PRESETS[preset]
-        kwargs.update({"output_blocks.{}.".format(i): arg for i, arg in enumerate(ratios_values)})
-        
+        block_types = ["input_blocks", "middle_block", "output_blocks"]
+        num_blocks = [12, 3, 12]
+
+        for block_type, num in zip(block_types, num_blocks):
+            for i, arg in enumerate(ratios_values):
+                kwargs["{}.{}.".format(block_type, i)] = arg
+
         bm = ModelMergeBlocks()
         model = bm.merge(model1, model2, **kwargs)
                 
