@@ -1,3 +1,6 @@
+import math
+import random
+
 from comfy_extras.nodes_model_merging import ModelMergeBlocks
 
 PRESETS = {
@@ -41,6 +44,17 @@ PRESETS = {
     "FAKE_REVERSE_CUBIC_HERMITE": [1, 0.842423804012346, 0.71508487654321, 0.615234375, 0.540123456790123, 0.487003279320988, 0.453125, 0.435739776234568, 0.432098765432099, 0.439453125, 0.455054012345679, 0.476152584876543, 0.5, 0.523847415123457, 0.544945987654321, 0.560546875, 0.567901234567901, 0.564260223765432, 0.546875, 0.512996720679013, 0.459876543209876, 0.384765625, 0.28491512345679, 0.157576195987653, 0],
     "ALL_A": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     "ALL_B": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    "DROP_OFF_IN": [0.5 if i < 20 else 0.0 for i in range(25)],
+    "DROP_OFF_OUT": [0.0 if i < 5 else 0.5 for i in range(25)],
+    "LOG_IN": [math.log(1 + i) / math.log(26) for i in range(25)],
+    "LOG_OUT": [1 - math.log(1 + i) / math.log(26) for i in range(25)],
+    "LINEAR_IN": [i/24 for i in range(25)],
+    "LINEAR_OUT": [(24-i)/24 for i in range(25)],
+    "SPIKE": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    "ZIGZAG": [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    "RANDOM": [random.random() for _ in range(25)],
+    "SINE_2": [math.sin(i * math.pi / 12) for i in range(25)],
+    "EXP_DECAY": [math.exp(-i * 0.5) for i in range(25)]
 }
 
 class Preset_Model_Merge:
