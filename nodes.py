@@ -41,37 +41,30 @@ PRESETS = {
     "ALL_B": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 }
 
-class Preset_Model_Merge(ModelMergeBlocks):
+class Preset_Model_Merge:
     @classmethod
     def INPUT_TYPES(cls):
-        arg_dict = { "model1": ("MODEL",),
-                              "model2": ("MODEL",)}
-
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
-
-        arg_dict["time_embed."] = argument
-        arg_dict["label_emb."] = argument        
-        arg_dict["preset"] = (list(PRESETS.keys()),)
+        return {
+            "required": {
+                "model1": ("MODEL",),
+                "model2": ("MODEL",),
+                "time_embed.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "label_emb.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "preset": (list(PRESETS.keys()),)
+            }
+        }
         
-        return {"required": arg_dict}
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "merge"
 
+    CATEGORY = "advanced/model_merging"
+    
     def merge(self, model1, model2, preset, **kwargs):
-        m = model1.clone()
-        kp = model2.get_key_patches("diffusion_model.")
+    
+        ratios_values = PRESETS[preset]
+        kwargs.update({"output_blocks.{}.".format(i): arg for i, arg in enumerate(ratios_values)})
         
-        selected_preset_values = PRESETS[preset]
-        ratios = {"output_blocks.{}.".format(i): arg for i, arg in enumerate(selected_preset_values)}
-        
-        for k in kp:
-            k_unet = k[len("diffusion_model."):]
-            
-            last_arg_size = 0
-            ratio = 1.0 
-            for arg in ratios:
-                if k_unet.startswith(arg) and last_arg_size < len(arg):
-                    ratio = ratios[arg]
-                    last_arg_size = len(arg)
-            
-            m.add_patches({k: kp[k]}, 1.0 - ratio, ratio)
-            
-        return (m, )
+        bm = ModelMergeBlocks()
+        model = bm.merge(model1, model2, **kwargs)
+                
+        return (model[0],)
