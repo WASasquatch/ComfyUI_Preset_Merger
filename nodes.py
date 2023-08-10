@@ -1,11 +1,3 @@
-import comfy.sd
-import comfy.utils
-import comfy.model_base
-
-import folder_paths
-import json
-import os
-
 from comfy_extras.nodes_model_merging import ModelMergeBlocks
 
 PRESETS = {
