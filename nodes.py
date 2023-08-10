@@ -58,21 +58,20 @@ class Preset_Model_Merge(ModelMergeBlocks):
     def merge(self, model1, model2, preset, **kwargs):
         m = model1.clone()
         kp = model2.get_key_patches("diffusion_model.")
-        default_ratio = next(iter(kwargs.values()))
-
+        
         selected_preset_values = PRESETS[preset]
-
+        ratios = {"output_blocks.{}.".format(i): arg for i, arg in enumerate(selected_preset_values)}
+        
         for k in kp:
-            ratio = default_ratio
             k_unet = k[len("diffusion_model."):]
-
+            
             last_arg_size = 0
-            for arg in kwargs:
+            ratio = 1.0 
+            for arg in ratios:
                 if k_unet.startswith(arg) and last_arg_size < len(arg):
-                    ratio = kwargs[arg]
+                    ratio = ratios[arg]
                     last_arg_size = len(arg)
-
-            input_blocks_kwargs = {f"input_blocks.{i}.": value for i, value in enumerate(selected_preset_values)}
-            m.add_patches({k: kp[k]}, input_blocks_kwargs, ratio)
+            
+            m.add_patches({k: kp[k]}, 1.0 - ratio, ratio)
             
         return (m, )
