@@ -1,7 +1,7 @@
 # ComfyUI_Preset_Merger
 Merge checkpoint models by preset
 
-This contains one node that will be available in `advance/model_merging` called `ModelMergeByPreset`
+This contains one node that will be available in `advanced/model_merging` called `ModelMergeByPreset`
 
 # Sine examples
 **Note**: *Missing sawtooth examples.* 
