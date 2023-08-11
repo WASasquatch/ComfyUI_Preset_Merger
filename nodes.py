@@ -1,5 +1,6 @@
 import math
 import random
+import hashlib
 
 from comfy_extras.nodes_model_merging import ModelMergeBlocks
 
@@ -143,16 +144,16 @@ class Preset_Model_Merge:
         }
         
     @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        if kwargs.__contains__('preset'):
-            if kwargs['preset'] == 'RANDOM':
-                return float("NaN")
-            else:
-                sha256_hash = hashlib.sha256()
-                sha256_hash.update(kwargs['preset'].encode('utf-8'))
-                return sha256_hash.hexdigest()
+    def IS_CHANGED(cls, preset):
+        print("Checking change state...")
+        if preset == 'RANDOM':
+            print("IS_CHANGED == True")
+            return float("NaN")
         else:
-            return 0
+            print("IS_CHANGED == False")
+            sha256_hash = hashlib.sha256()
+            sha256_hash.update(kwargs['preset'].encode('utf-8'))
+            return sha256_hash.digest().hex()
         
     RETURN_TYPES = ("MODEL",)
     FUNCTION = "merge"
