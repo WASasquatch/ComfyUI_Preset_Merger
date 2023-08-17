@@ -3,6 +3,7 @@ import random
 import hashlib
 
 from comfy_extras.nodes_model_merging import ModelMergeBlocks
+from comfy.model_detection import count_blocks
 
 def bounce_ease_in_out(t):
     if t < 0.5:
@@ -45,6 +46,44 @@ def cubic_ease_out(t):
     t -= 1
     return t * t * t + 1
     
+def random_scale_blocked(seed=None):
+    if seed:
+        random.seed(seed)
+    
+    center_values = [ random.random(), random.random(), random.random() ]
+    presets = []
+    input_blocks = 12
+    middle_blocks = 3
+    out_blocks = 12
+    
+    for i in range(25):
+        if i < input_blocks:
+            if i == 5:
+                center_value = center_values[0]
+                t = 0.5
+            else:
+                center_value = center_values[0]
+                t = i / 5
+        elif i < input_blocks + middle_blocks:
+            if i == 12:
+                center_value = center_values[1]
+                t = 0.5
+            else:
+                center_value = center_values[1]
+                t = (i - 6) / 5
+        else:
+            if i == 21:
+                center_value = center_values[2]
+                t = 0.5
+            else:
+                center_value = center_values[2]
+                t = (i - 15) / 5
+        
+        value = center_value + (random.random() - 0.5) * (1 - abs(2 * t - 1))
+        presets.append(value)
+    
+    return presets
+    
 def sawtooth_wave(t, segments=2, reverse=False):
     segment_length = 1 / segments
     segment_index = int(t / segment_length)
@@ -58,7 +97,9 @@ def sawtooth_wave(t, segments=2, reverse=False):
 def square_sine_wave(t):
     return 1 if math.sin(t * math.pi * 2) >= 0 else 0
 
-def get_presets():
+def get_presets(seed=None):
+    if seed:
+        random.seed(seed)
     presets = {
         "ALL_A": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         "ALL_B": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -91,6 +132,7 @@ def get_presets():
         "OUT12": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         "OUT12_5": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         "RANDOM": [random.random() for _ in range(25)],
+        "RANDOM (SCALE BLOCKED)": random_scale_blocked(seed),
         "RING08_5": [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
         "RING08_SOFT": [0, 0, 0, 0, 0, 0.5, 1, 1, 1, 0.5, 0, 0, 0, 0, 0, 0.5, 1, 1, 1, 0.5, 0, 0, 0, 0, 0],
         "RING10_3": [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
@@ -137,6 +179,7 @@ class Preset_Model_Merge:
             "required": {
                 "model1": ("MODEL",),
                 "model2": ("MODEL",),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),  
                 "time_embed.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "label_emb.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "preset": (list(get_presets().keys()),)
@@ -160,11 +203,14 @@ class Preset_Model_Merge:
 
     CATEGORY = "advanced/model_merging"
     
-    def merge(self, model1, model2, preset, **kwargs):
-        ratios = get_presets()
+    def merge(self, model1, model2, seed, preset, **kwargs):
+        ratios = get_presets(seed)
         ratios_values = ratios[preset]
+        kp = model2.get_key_patches("diffusion_model.")
         block_types = ["input_blocks", "middle_block", "output_blocks"]
         num_blocks = [12, 3, 12]
+        
+        print(num_blocks)
 
         for block_type, num in zip(block_types, num_blocks):
             for i, arg in enumerate(ratios_values):
