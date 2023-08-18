@@ -182,7 +182,8 @@ class Preset_Model_Merge:
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),  
                 "time_embed.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "label_emb.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "preset": (list(get_presets().keys()),)
+                "preset": (list(get_presets().keys()),),
+                "preset_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001})
             }
         }
         
@@ -203,20 +204,31 @@ class Preset_Model_Merge:
 
     CATEGORY = "advanced/model_merging"
     
-    def merge(self, model1, model2, seed, preset, **kwargs):
+    def merge(self, model1, model2, seed, preset, preset_strength, **kwargs):
         ratios = get_presets(seed)
-        ratios_values = ratios[preset]
-        kp = model2.get_key_patches("diffusion_model.")
+        ratios_values = [val * preset_strength for val in ratios[preset]]
         block_types = ["input_blocks", "middle_block", "output_blocks"]
-        num_blocks = [12, 3, 12]
+        block_results = {block_type: [] for block_type in block_types}
+        num_blocks = [12, 1, 12]
         
         print(num_blocks)
 
+        from pprint import pprint
         for block_type, num in zip(block_types, num_blocks):
-            for i, arg in enumerate(ratios_values):
-                kwargs["{}.{}.".format(block_type, i)] = arg
+            if num > 1:
+                for i in range(num):
+                    ratio_key = "{}.{}.".format(block_type, i)
+                    kwargs[ratio_key] = ratios_values.pop(0)
+                    block_results[block_type].append(kwargs[ratio_key])
+            elif num == 1:
+                ratio_key = "{}.".format(block_type)
+                kwargs[ratio_key] = ratios_values.pop(0)
+                block_results[block_type].append(kwargs[ratio_key])
+               
+        for block_name, block_results in block_results.items():
+            print(f"{block_name} Ratio{'s' if block_name != 'middle_block' else ''}: {', '.join(map(str, block_results))}")
 
         bm = ModelMergeBlocks()
         model = bm.merge(model1, model2, **kwargs)
-                
+        
         return (model[0],)
