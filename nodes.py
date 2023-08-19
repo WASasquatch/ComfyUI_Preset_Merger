@@ -1,6 +1,7 @@
 import math
 import random
 import hashlib
+import numpy as np
 
 from comfy_extras.nodes_model_merging import ModelMergeBlocks
 from comfy.model_detection import count_blocks
@@ -96,6 +97,12 @@ def sawtooth_wave(t, segments=2, reverse=False):
     
 def square_sine_wave(t):
     return 1 if math.sin(t * math.pi * 2) >= 0 else 0
+    
+def exp_decay(x):
+    return 1.0 / (1.0 + np.exp(x))
+
+def exp_growth(x):
+    return 1.0 - (1.0 / (1.0 + np.exp(x)))
 
 def get_presets(seed=None):
     if seed:
@@ -119,10 +126,14 @@ def get_presets(seed=None):
         "DROP_OFF_IN": [0.5 if i < 20 else 0.0 for i in range(25)],
         "DROP_OFF_OUT": [0.0 if i < 5 else 0.5 for i in range(25)],
         "EXP_DECAY": [math.exp(-i * 0.5) for i in range(25)],
+        "EXP_DECAY (CLAMPED)": [exp_decay(-i * 0.5) for i in range(25)],
+        "EXP_GROWTH": [exp_growth(i * 0.5) for i in range(25)],
         "FLAT_25": [0.25] * 25,
         "FLAT_75": [0.75] * 25,
         "GRAD_A": [0, 0.0833333333, 0.1666666667, 0.25, 0.3333333333, 0.4166666667, 0.5, 0.5833333333, 0.6666666667, 0.75, 0.8333333333, 0.9166666667, 1.0, 0.9166666667, 0.8333333333, 0.75, 0.6666666667, 0.5833333333, 0.5, 0.4166666667, 0.3333333333, 0.25, 0.1666666667, 0.0833333333, 0],
         "GRAD_V": [1, 0.9166666667, 0.8333333333, 0.75, 0.6666666667, 0.5833333333, 0.5, 0.4166666667, 0.3333333333, 0.25, 0.1666666667, 0.0833333333, 0, 0.0833333333, 0.1666666667, 0.25, 0.3333333333, 0.4166666667, 0.5, 0.5833333333, 0.6666666667, 0.75, 0.8333333333, 0.9166666667, 1.0],
+        "GRAD_A (SMOOTH)": [0.5 + 0.5 * math.sin(math.pi * i / 25) for i in range(25)],
+        "GRAD_V (SMOOTH)": [0.5 + 0.5 * math.cos(math.pi * i / 25) for i in range(25)],
         "LINEAR_IN": [i/24 for i in range(25)],
         "LINEAR_OUT": [(24-i)/24 for i in range(25)],
         "LOG_IN": [math.log(1 + i) / math.log(26) for i in range(25)],
@@ -184,27 +195,33 @@ class Preset_Model_Merge:
                 "label_emb.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "preset": (list(get_presets().keys()),),
                 "preset_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001})
+            },
+            "hidden": {
+                "unique_id": "UNIQUE_ID",
             }
         }
         
     @classmethod
-    def IS_CHANGED(cls, preset):
-        print("Checking change state...")
-        if preset == 'RANDOM':
-            print("IS_CHANGED == True")
-            return float("NaN")
-        else:
-            print("IS_CHANGED == False")
-            sha256_hash = hashlib.sha256()
-            sha256_hash.update(kwargs['preset'].encode('utf-8'))
-            return sha256_hash.digest().hex()
+    def IS_CHANGED(cls, **kwargs):
+        try:
+            print("Checking change state...")
+            if kwargs['preset'] in ["RANDOM", "RANDOM (SCALE BLOCKD)"]:
+                print("IS_CHANGED == True")
+                return float("NaN")
+            else:
+                print("IS_CHANGED == False")
+                sha256_hash = hashlib.sha256()
+                sha256_hash.update(kwargs['preset'].encode('utf-8'))
+                return sha256_hash.digest().hex()
+        except Exception as e:
+            print(e)
         
     RETURN_TYPES = ("MODEL",)
     FUNCTION = "merge"
 
     CATEGORY = "advanced/model_merging"
     
-    def merge(self, model1, model2, seed, preset, preset_strength, **kwargs):
+    def merge(self, model1, model2, seed, preset, preset_strength, unique_id, **kwargs):
         ratios = get_presets(seed)
         ratios_values = [val * preset_strength for val in ratios[preset]]
         block_types = ["input_blocks", "middle_block", "output_blocks"]
@@ -225,6 +242,7 @@ class Preset_Model_Merge:
                 kwargs[ratio_key] = ratios_values.pop(0)
                 block_results[block_type].append(kwargs[ratio_key])
                
+        print(f"ModelPresetMerge {unique_id} Preset Mode: {preset}")
         for block_name, block_results in block_results.items():
             print(f"{block_name} Ratio{'s' if block_name != 'middle_block' else ''}: {', '.join(map(str, block_results))}")
 
