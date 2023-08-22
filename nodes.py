@@ -104,7 +104,7 @@ def exp_decay(x):
 def exp_growth(x):
     return 1.0 - (1.0 / (1.0 + np.exp(x)))
 
-def get_presets(seed=None):
+def get_presets(exponent=1.0, seed=None):
     if seed:
         random.seed(seed)
     presets = {
@@ -132,8 +132,8 @@ def get_presets(seed=None):
         "FLAT_75": [0.75] * 25,
         "GRAD_A": [0, 0.0833333333, 0.1666666667, 0.25, 0.3333333333, 0.4166666667, 0.5, 0.5833333333, 0.6666666667, 0.75, 0.8333333333, 0.9166666667, 1.0, 0.9166666667, 0.8333333333, 0.75, 0.6666666667, 0.5833333333, 0.5, 0.4166666667, 0.3333333333, 0.25, 0.1666666667, 0.0833333333, 0],
         "GRAD_V": [1, 0.9166666667, 0.8333333333, 0.75, 0.6666666667, 0.5833333333, 0.5, 0.4166666667, 0.3333333333, 0.25, 0.1666666667, 0.0833333333, 0, 0.0833333333, 0.1666666667, 0.25, 0.3333333333, 0.4166666667, 0.5, 0.5833333333, 0.6666666667, 0.75, 0.8333333333, 0.9166666667, 1.0],
-        "GRAD_A (SMOOTH)": [0.5 + 0.5 * math.sin(math.pi * i / 25) for i in range(25)],
-        "GRAD_V (SMOOTH)": [0.5 + 0.5 * math.cos(math.pi * i / 25) for i in range(25)],
+        "GRAD_A (SMOOTH)": [1 / (1 + math.exp(exponent * (i / (25/2) - 1))) for i in range(25)],
+        "GRAD_V (SMOOTH)": [1 / (1 + math.exp(-exponent * (i / (25/2) - 1))) for i in range(25)],
         "LINEAR_IN": [i/24 for i in range(25)],
         "LINEAR_OUT": [(24-i)/24 for i in range(25)],
         "LOG_IN": [math.log(1 + i) / math.log(26) for i in range(25)],
@@ -194,7 +194,7 @@ class Preset_Model_Merge:
                 "time_embed.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "label_emb.": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "preset": (list(get_presets().keys()),),
-                "preset_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001})
+                "preset_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -222,7 +222,7 @@ class Preset_Model_Merge:
     CATEGORY = "advanced/model_merging"
     
     def merge(self, model1, model2, seed, preset, preset_strength, unique_id, **kwargs):
-        ratios = get_presets(seed)
+        ratios = get_presets(1.0, seed)
         ratios_values = [val * preset_strength for val in ratios[preset]]
         block_types = ["input_blocks", "middle_block", "output_blocks"]
         block_results = {block_type: [] for block_type in block_types}
