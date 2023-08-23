@@ -227,10 +227,7 @@ class Preset_Model_Merge:
         block_types = ["input_blocks", "middle_block", "output_blocks"]
         block_results = {block_type: [] for block_type in block_types}
         num_blocks = [12, 1, 12]
-        
-        print(num_blocks)
 
-        from pprint import pprint
         for block_type, num in zip(block_types, num_blocks):
             if num > 1:
                 for i in range(num):
