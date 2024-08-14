@@ -2,7 +2,7 @@
 name = "comfyui_preset_merger"
 description = "Nodes: ModelMergeByPreset. Merge checkpoint models by preset"
 version = "1.0.0"
-license = "LICENSE"
+license = { file = "LICENSE" }
 
 [project.urls]
 Repository = "https://github.com/WASasquatch/ComfyUI_Preset_Merger"
